@@ -5,6 +5,8 @@ const { protect } = require('../Middlewares/authMiddleware');
 const {
   createTask,
   getTasks,
+  updateTask,
+  deleteTask
 } = require('../Controllers/taskController');
 
 // Apply protect middleware to all routes
@@ -28,5 +30,25 @@ router.post(
 // @desc    Get all tasks for the logged-in user
 // @access  Private
 router.get('/', getTasks);
+
+// @route   PUT /api/tasks/:id
+// @desc    Update a task
+// @access  Private
+router.put(
+  '/:id',
+  [
+    check('title', 'Title is required').optional().not().isEmpty().trim().escape(),
+    check('description', 'Description is too long').optional().trim().escape().isLength({ max: 1000 }),
+    check('dueDate', 'Invalid due date').optional().isISO8601(),
+    check('priority', 'Invalid priority').optional().isIn(['low', 'medium', 'high']),
+    check('completed', 'Completed must be a boolean').optional().isBoolean()
+  ],
+  updateTask
+);
+
+// @route   DELETE /api/tasks/:id
+// @desc    Delete a task
+// @access  Private
+router.delete('/:id', deleteTask);
 
 module.exports = router;

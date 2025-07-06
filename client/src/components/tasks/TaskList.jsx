@@ -2,7 +2,48 @@ import { useState, useEffect } from 'react';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import TaskForm from './TaskForm';
-import { getTasks, createTask } from '../../services/taskService';
+import { getTasks, createTask, updateTask, deleteTask } from '../../services/taskService';
+
+const ConfirmationDialog = ({ isOpen, onClose, onConfirm, title, message, isDeleting }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+        <div className="p-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{title}</h3>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">{message}</p>
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isDeleting}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              {isDeleting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Deleting...
+                </>
+              ) : 'Delete'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const priorityColors = {
   low: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
@@ -16,6 +57,9 @@ const TaskList = () => {
   const [error, setError] = useState('');
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [taskToDelete, setTaskToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchTasks = async () => {
     try {
@@ -35,13 +79,52 @@ const TaskList = () => {
     fetchTasks();
   }, []);
 
-  const handleCreateTask = async (taskData) => {
+
+
+  const handleEditClick = (task) => {
+    setEditingTask({
+      ...task,
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''
+    });
+    setShowTaskForm(true);
+  };
+
+  const handleTaskSubmit = async (taskData) => {
     try {
-      await createTask(taskData);
+      setIsSubmitting(true);
+      if (editingTask) {
+        await updateTask(editingTask._id, taskData);
+      } else {
+        await createTask(taskData);
+      }
       await fetchTasks();
+      setShowTaskForm(false);
+      setEditingTask(null);
+    } catch (error) {
+      console.error('Error saving task:', error);
+      throw error;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteClick = (task) => {
+    setTaskToDelete(task);
+  };
+
+  const confirmDelete = async () => {
+    if (!taskToDelete) return;
+    
+    try {
+      setIsDeleting(true);
+      await deleteTask(taskToDelete._id);
+      setTasks(tasks.filter(task => task._id !== taskToDelete._id));
+      setTaskToDelete(null);
     } catch (err) {
-      console.error('Error creating task:', err);
-      throw err;
+      console.error('Error deleting task:', err);
+      setError(err.message || 'Failed to delete task');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -170,21 +253,26 @@ const TaskList = () => {
                     </div>
                   </div>
                   <div className="ml-4 flex-shrink-0 flex space-x-2">
-                    <button
-                      onClick={() => {
-                        setEditingTask(task);
-                        setShowTaskForm(true);
-                      }}
-                      className="p-1 rounded-full text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      <PencilIcon className="h-5 w-5" aria-hidden="true" />
-                    </button>
-                    <button
-                      onClick={() => {}}
-                      className="p-1 rounded-full text-gray-400 hover:text-red-600 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    >
-                      <TrashIcon className="h-5 w-5" aria-hidden="true" />
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => handleEditClick(task)}
+                        className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                        title="Edit task"
+                        disabled={isDeleting}
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteClick(task)}
+                        className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 dark:hover:bg-red-900/30"
+                        title="Delete task"
+                        disabled={isDeleting}
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </li>
@@ -194,22 +282,25 @@ const TaskList = () => {
       )}
 
       {showTaskForm && (
-        <TaskForm
+        <TaskForm 
           onClose={() => {
             setShowTaskForm(false);
             setEditingTask(null);
-          }}
-          onSubmit={async (taskData) => {
-            if (editingTask) {
-              // Handle update in the next prompt
-              console.log('Update task:', taskData);
-            } else {
-              await handleCreateTask(taskData);
-            }
-          }}
-          initialData={editingTask || {}}
+          }} 
+          onSubmit={handleTaskSubmit}
+          initialData={editingTask}
+          isSubmitting={isSubmitting}
         />
       )}
+      
+      <ConfirmationDialog
+        isOpen={!!taskToDelete}
+        onClose={() => setTaskToDelete(null)}
+        onConfirm={confirmDelete}
+        title="Delete Task"
+        message={`Are you sure you want to delete "${taskToDelete?.title}"? This action cannot be undone.`}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 };
