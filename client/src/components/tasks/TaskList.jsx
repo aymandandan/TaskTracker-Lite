@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { format, parseISO, isPast, isToday } from 'date-fns';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import TaskForm from './TaskForm';
 import { getTasks, createTask, updateTask, deleteTask, toggleTaskCompletion } from '../../services/taskService';
 
@@ -61,11 +61,32 @@ const TaskList = () => {
   const [updatingTasks, setUpdatingTasks] = useState(new Set());
   const [taskToDelete, setTaskToDelete] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Filter and sort state
+  const [filters, setFilters] = useState({
+    status: 'all', // all, completed, active
+    priority: 'all', // all, low, medium, high
+  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
+  const [sortOption, setSortOption] = useState('dueDate:asc'); // dueDate:asc, dueDate:desc, priority:asc, priority:desc
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
+      console.log("fetchTasks");
       setLoading(true);
-      const response = await getTasks();
+      console.log("sortOption: ", sortOption);
+      const [sortField, sortOrder] = sortOption.split(':');
+      console.log("sortField: ", sortField);
+      console.log("sortOrder: ", sortOrder);
+      const params = {
+        ...(filters.status !== 'all' && { completed: filters.status === 'completed' }),
+        ...(filters.priority !== 'all' && { priority: filters.priority }),
+        ...(appliedSearchQuery && { search: appliedSearchQuery }),
+        sortBy: `${sortField}:${sortOrder}`
+      };
+      console.log("params: ", params);
+      const response = await getTasks(params);
       setTasks(response.data || []);
       setError('');
     } catch (err) {
@@ -74,11 +95,24 @@ const TaskList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, appliedSearchQuery, sortOption]);
 
   useEffect(() => {
     fetchTasks();
-  }, []);
+  }, [fetchTasks]);
+
+  // Handle search submission
+  const handleSearch = (e) => {
+    e?.preventDefault();
+    setAppliedSearchQuery(searchQuery);
+  };
+
+  // Handle pressing Enter in search input
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
 
 
@@ -178,18 +212,167 @@ const TaskList = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Tasks</h1>
-        <button
-          onClick={() => {
-            setEditingTask(null);
-            setShowTaskForm(true);
-          }}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-          Add Task
-        </button>
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Tasks</h1>
+          <button
+            onClick={() => {
+              setEditingTask(null);
+              setShowTaskForm(true);
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full sm:w-auto justify-center"
+          >
+            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+            Add Task
+          </button>
+        </div>
+        
+        {/* Search and Filters */}
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            {/* Search */}
+            <form onSubmit={handleSearch} className="relative flex rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 pr-12 sm:text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-l-md h-10"
+                placeholder="Search tasks..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              <button
+                type="submit"
+                className="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-r-md hover:bg-gray-100 dark:hover:bg-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              >
+                Search
+              </button>
+            </form>
+            
+            {/* Status Filter */}
+            <div>
+              <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Status
+              </label>
+              <select
+                id="status-filter"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                value={filters.status}
+                onChange={(e) => setFilters({...filters, status: e.target.value})}
+              >
+                <option value="all">All Tasks</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            
+            {/* Priority Filter */}
+            <div>
+              <label htmlFor="priority-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Priority
+              </label>
+              <select
+                id="priority-filter"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                value={filters.priority}
+                onChange={(e) => setFilters({...filters, priority: e.target.value})}
+              >
+                <option value="all">All Priorities</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            
+            {/* Sort */}
+            <div>
+              <label htmlFor="sort-option" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Sort By
+              </label>
+              <select
+                id="sort-option"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
+              >
+                <option value="dueDate:asc">Due Date (Earliest First)</option>
+                <option value="dueDate:desc">Due Date (Latest First)</option>
+                <option value="priority:desc">Priority (High to Low)</option>
+                <option value="priority:asc">Priority (Low to High)</option>
+              </select>
+            </div>
+          </div>
+          
+          {/* Active Filters */}
+          {(filters.status !== 'all' || filters.priority !== 'all' || searchQuery) && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {filters.status !== 'all' && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                  {filters.status === 'completed' ? 'Completed' : 'Active'}
+                  <button
+                    type="button"
+                    className="ml-1.5 inline-flex items-center justify-center h-4 w-4 rounded-full text-blue-400 hover:bg-blue-200 hover:text-blue-500 dark:hover:bg-blue-800"
+                    onClick={() => setFilters({...filters, status: 'all'})}
+                  >
+                    <span className="sr-only">Remove status filter</span>
+                    <svg className="h-2 w-2" fill="currentColor" viewBox="0 0 8 8">
+                      <path fillRule="evenodd" d="M4 3.293l2.146-2.147a.5.5 0 01.708.708L4.707 4l2.147 2.146a.5.5 0 01-.708.708L4 4.707l-2.146 2.147a.5.5 0 01-.708-.708L3.293 4 1.146 1.854a.5.5 0 01.708-.708L4 3.293z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </span>
+              )}
+              
+              {filters.priority !== 'all' && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                  {filters.priority.charAt(0).toUpperCase() + filters.priority.slice(1)} Priority
+                  <button
+                    type="button"
+                    className="ml-1.5 inline-flex items-center justify-center h-4 w-4 rounded-full text-purple-400 hover:bg-purple-200 hover:text-purple-500 dark:hover:bg-purple-800"
+                    onClick={() => setFilters({...filters, priority: 'all'})}
+                  >
+                    <span className="sr-only">Remove priority filter</span>
+                    <svg className="h-2 w-2" fill="currentColor" viewBox="0 0 8 8">
+                      <path fillRule="evenodd" d="M4 3.293l2.146-2.147a.5.5 0 01.708.708L4.707 4l2.147 2.146a.5.5 0 01-.708.708L4 4.707l-2.146 2.147a.5.5 0 01-.708-.708L3.293 4 1.146 1.854a.5.5 0 01.708-.708L4 3.293z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </span>
+              )}
+              
+              {appliedSearchQuery && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                  Search: {appliedSearchQuery}
+                  <button
+                    type="button"
+                    className="ml-1.5 inline-flex items-center justify-center h-4 w-4 rounded-full text-green-400 hover:bg-green-200 hover:text-green-500 dark:hover:bg-green-800"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setAppliedSearchQuery('');
+                    }}
+                  >
+                    <span className="sr-only">Remove search</span>
+                    <svg className="h-2 w-2" fill="currentColor" viewBox="0 0 8 8">
+                      <path fillRule="evenodd" d="M4 3.293l2.146-2.147a.5.5 0 01.708.708L4.707 4l2.147 2.146a.5.5 0 01-.708.708L4 4.707l-2.146 2.147a.5.5 0 01-.708-.708L3.293 4 1.146 1.854a.5.5 0 01.708-.708L4 3.293z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </span>
+              )}
+              
+              <button
+                type="button"
+                className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 ml-1"
+                onClick={() => {
+                  setFilters({ status: 'all', priority: 'all' });
+                  setSearchQuery('');
+                  setAppliedSearchQuery('');
+                }}
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {error && (

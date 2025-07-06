@@ -76,21 +76,66 @@ exports.createTask = async (req, res) => {
   }
 };
 
-// @desc    Get all tasks for the logged-in user
+// @desc    Get all tasks for the logged-in user with filtering, sorting, and search
 // @route   GET /api/tasks
 // @access  Private
 exports.getTasks = async (req, res) => {
   try {
     // Build query
     const query = { owner: req.user.id };
+    const { priority, completed, search, sortBy } = req.query;
 
     // Filter by completion status if provided
-    if (req.query.completed) {
-      query.completed = req.query.completed === 'true';
+    if (completed) {
+      query.completed = completed === 'true';
     }
 
-    // Execute query
-    const tasks = await Task.find(query).sort({ dueDate: 1, createdAt: -1 });
+    // Filter by priority if provided
+    if (priority && ['low', 'medium', 'high'].includes(priority)) {
+      query.priority = priority;
+    }
+
+    // Search in title and description if search term is provided
+    if (search && search.trim() !== '') {
+      const searchRegex = new RegExp(search, 'i'); // Case-insensitive search
+      query.$or = [{ title: { $regex: searchRegex } }, { description: { $regex: searchRegex } }];
+    }
+
+    // Build sort object
+    let sort = {};
+    let sortPriorityInMemory = false;
+    let sortPriorityDirection = 1;
+
+    if (sortBy) {
+      const parts = sortBy.split(':');
+      const field = parts[0];
+      const direction = parts[1] === 'desc' ? -1 : 1;
+
+      if (field === 'priority') {
+        // Mark for in-memory sorting
+        sortPriorityInMemory = true;
+        sortPriorityDirection = direction;
+      } else {
+        // Regular field sorting
+        sort[field] = direction;
+      }
+    } else {
+      // Default sort
+      sort = { dueDate: 1, createdAt: -1 };
+    }
+
+    // Execute query with filters and sorting
+    let tasks = await Task.find(query).sort(sort);
+
+    // Handle priority sorting in memory if needed
+    if (sortPriorityInMemory) {
+      const priorityOrder = { high: 3, medium: 2, low: 1 };
+      tasks.sort((a, b) => {
+        const aOrder = priorityOrder[a.priority] || 0;
+        const bOrder = priorityOrder[b.priority] || 0;
+        return sortPriorityDirection * (aOrder - bOrder);
+      });
+    }
 
     res.status(200).json({
       success: true,
