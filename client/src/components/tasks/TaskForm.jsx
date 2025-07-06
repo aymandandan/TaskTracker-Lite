@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 
-const TaskForm = ({ onClose, onSubmit, initialData = {}, isSubmitting = false }) => {
+const TaskForm = ({ isOpen, onClose, onSubmit, task: initialData = {}, isSubmitting = false }) => {
   const [error, setError] = useState('');
   
   const { register, handleSubmit, formState: { errors }, setValue } = useForm({
@@ -47,9 +47,11 @@ const TaskForm = ({ onClose, onSubmit, initialData = {}, isSubmitting = false })
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {initialData?._id ? 'Edit Task' : 'Add New Task'}

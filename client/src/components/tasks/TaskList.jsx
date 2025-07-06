@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { format, parseISO, isPast, isToday } from 'date-fns';
-import { PlusIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon, FunnelIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import TaskForm from './TaskForm';
-import { getTasks, createTask, updateTask, deleteTask, toggleTaskCompletion } from '../../services/taskService';
+import { getTasks, createTask, updateTask, deleteTask } from '../../services/taskService';
 
 const ConfirmationDialog = ({ isOpen, onClose, onConfirm, title, message, isDeleting }) => {
   if (!isOpen) return null;
@@ -45,133 +45,145 @@ const ConfirmationDialog = ({ isOpen, onClose, onConfirm, title, message, isDele
   );
 };
 
-const priorityColors = {
-  low: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-  high: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-};
-
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [updatingTasks, setUpdatingTasks] = useState(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Filter and sort state
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Filter state with proper type safety
   const [filters, setFilters] = useState({
-    status: 'all', // all, completed, active
+    status: 'all', // all, pending, completed
     priority: 'all', // all, low, medium, high
   });
-  const [searchQuery, setSearchQuery] = useState('');
-  const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
-  const [sortOption, setSortOption] = useState('dueDate:asc'); // dueDate:asc, dueDate:desc, priority:asc, priority:desc
+  
+  const { status: statusFilter, priority: priorityFilter } = filters;
+  
+  // Styling configurations for task status and priority
+  const statusColors = {
+    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  };
+  
+  const priorityColors = {
+    low: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    high: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  };
+  
+
+  
+  const getPriorityDisplay = (priority) => {
+    return priority.charAt(0).toUpperCase() + priority.slice(1);
+  };
+  
+  const handleFilterChange = (type, value) => {
+    setFilters(prev => ({ ...prev, [type]: value }));
+  };
 
   const fetchTasks = useCallback(async () => {
     try {
-      console.log("fetchTasks");
-      setLoading(true);
-      console.log("sortOption: ", sortOption);
-      const [sortField, sortOrder] = sortOption.split(':');
-      console.log("sortField: ", sortField);
-      console.log("sortOrder: ", sortOrder);
-      const params = {
-        ...(filters.status !== 'all' && { completed: filters.status === 'completed' }),
-        ...(filters.priority !== 'all' && { priority: filters.priority }),
-        ...(appliedSearchQuery && { search: appliedSearchQuery }),
-        sortBy: `${sortField}:${sortOrder}`
-      };
-      console.log("params: ", params);
-      const response = await getTasks(params);
+      setIsLoading(true);
+      const response = await getTasks();
       setTasks(response.data || []);
       setError('');
     } catch (err) {
       console.error('Error fetching tasks:', err);
       setError('Failed to load tasks. Please try again later.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [filters, appliedSearchQuery, sortOption]);
+  }, []);
 
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
 
-  // Handle search submission
-  const handleSearch = (e) => {
-    e?.preventDefault();
-    setAppliedSearchQuery(searchQuery);
-  };
+  const filteredTasks = tasks.filter((task) => {
+    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  // Handle pressing Enter in search input
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
+    const taskStatus = task.completed ? 'completed' : 'pending';
+    const matchesStatus = statusFilter === 'all' || taskStatus === statusFilter;
 
+    const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
 
+    return matchesSearch && matchesStatus && matchesPriority;
+  });
 
   const handleEditClick = (task) => {
     setEditingTask({
       ...task,
       dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''
     });
-    setShowTaskForm(true);
+    setIsFormOpen(true);
+  };
+
+  const getDueDateStatus = (dueDate) => {
+    if (!dueDate) return 'No due date';
+
+    const due = parseISO(dueDate);
+
+    if (isToday(due)) return 'Today';
+    if (isPast(due)) return 'Overdue';
+
+    return format(due, 'MMM d, yyyy');
   };
 
   const handleTaskSubmit = async (taskData) => {
     try {
-      setIsSubmitting(true);
       if (editingTask) {
         await updateTask(editingTask._id, taskData);
       } else {
         await createTask(taskData);
       }
       await fetchTasks();
-      setShowTaskForm(false);
+      setIsFormOpen(false);
       setEditingTask(null);
     } catch (error) {
       console.error('Error saving task:', error);
       throw error;
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const handleDeleteClick = (task) => {
     setTaskToDelete(task);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const handleCloseDeleteDialog = () => {
+    setIsDeleteDialogOpen(false);
+    setTaskToDelete(null);
   };
 
-  const handleToggleComplete = async (task) => {
+  const handleToggleComplete = async (taskId, currentCompleted) => {
     try {
-      setUpdatingTasks(prev => new Set([...prev, task._id]));
-      const updatedTask = await toggleTaskCompletion(task._id);
-      setTasks(tasks.map(t => t._id === updatedTask._id ? updatedTask : t));
+      const updatedTask = await updateTask(taskId, { 
+        completed: !currentCompleted,
+        completedAt: !currentCompleted ? new Date() : null 
+      });
+      setTasks(tasks.map(t => t._id === taskId ? updatedTask.data : t));
     } catch (error) {
       console.error('Error toggling task completion:', error);
       setError(error.message || 'Failed to update task status');
-    } finally {
-      setUpdatingTasks(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(task._id);
-        return newSet;
-      });
     }
   };
 
   const confirmDelete = async () => {
     if (!taskToDelete) return;
-    
+
     try {
       setIsDeleting(true);
       await deleteTask(taskToDelete._id);
       setTasks(tasks.filter(task => task._id !== taskToDelete._id));
       setTaskToDelete(null);
+      setIsDeleteDialogOpen(false);
     } catch (err) {
       console.error('Error deleting task:', err);
       setError(err.message || 'Failed to delete task');
@@ -180,198 +192,95 @@ const TaskList = () => {
     }
   };
 
-  const getDueDateStatus = (dueDate) => {
-    const date = parseISO(dueDate);
-    if (isPast(date) && !isToday(date)) {
-      return 'Overdue';
-    }
-    if (isToday(date)) {
-      return 'Today';
-    }
-    return format(date, 'MMM d, yyyy');
-  };
-
-  const getDueDateClass = (dueDate) => {
-    const date = parseISO(dueDate);
-    if (isPast(date) && !isToday(date)) {
-      return 'text-red-600 dark:text-red-400';
-    }
-    if (isToday(date)) {
-      return 'text-green-600 dark:text-green-400 font-medium';
-    }
-    return 'text-gray-600 dark:text-gray-400';
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Tasks</h1>
-          <button
-            onClick={() => {
-              setEditingTask(null);
-              setShowTaskForm(true);
-            }}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full sm:w-auto justify-center"
-          >
-            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-            Add Task
-          </button>
-        </div>
-        
-        {/* Search and Filters */}
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            {/* Search */}
-            <form onSubmit={handleSearch} className="relative flex rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 pr-12 sm:text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-l-md h-10"
-                placeholder="Search tasks..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-              />
-              <button
-                type="submit"
-                className="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-r-md hover:bg-gray-100 dark:hover:bg-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              >
-                Search
-              </button>
-            </form>
-            
-            {/* Status Filter */}
-            <div>
-              <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Status
-              </label>
-              <select
-                id="status-filter"
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                value={filters.status}
-                onChange={(e) => setFilters({...filters, status: e.target.value})}
-              >
-                <option value="all">All Tasks</option>
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
-            
-            {/* Priority Filter */}
-            <div>
-              <label htmlFor="priority-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Priority
-              </label>
-              <select
-                id="priority-filter"
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                value={filters.priority}
-                onChange={(e) => setFilters({...filters, priority: e.target.value})}
-              >
-                <option value="all">All Priorities</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
-            </div>
-            
-            {/* Sort */}
-            <div>
-              <label htmlFor="sort-option" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Sort By
-              </label>
-              <select
-                id="sort-option"
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                value={sortOption}
-                onChange={(e) => setSortOption(e.target.value)}
-              >
-                <option value="dueDate:asc">Due Date (Earliest First)</option>
-                <option value="dueDate:desc">Due Date (Latest First)</option>
-                <option value="priority:desc">Priority (High to Low)</option>
-                <option value="priority:asc">Priority (Low to High)</option>
-              </select>
-            </div>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="sm:flex sm:items-center sm:justify-between mb-4">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white">My Tasks</h2>
+          <div className="mt-3 sm:mt-0 sm:ml-4">
+            <button
+              onClick={() => {
+                setEditingTask(null);
+                setIsFormOpen(true);
+              }}
+              className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+              Add Task
+            </button>
           </div>
-          
-          {/* Active Filters */}
-          {(filters.status !== 'all' || filters.priority !== 'all' || searchQuery) && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {filters.status !== 'all' && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                  {filters.status === 'completed' ? 'Completed' : 'Active'}
-                  <button
-                    type="button"
-                    className="ml-1.5 inline-flex items-center justify-center h-4 w-4 rounded-full text-blue-400 hover:bg-blue-200 hover:text-blue-500 dark:hover:bg-blue-800"
-                    onClick={() => setFilters({...filters, status: 'all'})}
-                  >
-                    <span className="sr-only">Remove status filter</span>
-                    <svg className="h-2 w-2" fill="currentColor" viewBox="0 0 8 8">
-                      <path fillRule="evenodd" d="M4 3.293l2.146-2.147a.5.5 0 01.708.708L4.707 4l2.147 2.146a.5.5 0 01-.708.708L4 4.707l-2.146 2.147a.5.5 0 01-.708-.708L3.293 4 1.146 1.854a.5.5 0 01.708-.708L4 3.293z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </span>
-              )}
-              
-              {filters.priority !== 'all' && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                  {filters.priority.charAt(0).toUpperCase() + filters.priority.slice(1)} Priority
-                  <button
-                    type="button"
-                    className="ml-1.5 inline-flex items-center justify-center h-4 w-4 rounded-full text-purple-400 hover:bg-purple-200 hover:text-purple-500 dark:hover:bg-purple-800"
-                    onClick={() => setFilters({...filters, priority: 'all'})}
-                  >
-                    <span className="sr-only">Remove priority filter</span>
-                    <svg className="h-2 w-2" fill="currentColor" viewBox="0 0 8 8">
-                      <path fillRule="evenodd" d="M4 3.293l2.146-2.147a.5.5 0 01.708.708L4.707 4l2.147 2.146a.5.5 0 01-.708.708L4 4.707l-2.146 2.147a.5.5 0 01-.708-.708L3.293 4 1.146 1.854a.5.5 0 01.708-.708L4 3.293z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </span>
-              )}
-              
-              {appliedSearchQuery && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                  Search: {appliedSearchQuery}
-                  <button
-                    type="button"
-                    className="ml-1.5 inline-flex items-center justify-center h-4 w-4 rounded-full text-green-400 hover:bg-green-200 hover:text-green-500 dark:hover:bg-green-800"
-                    onClick={() => {
-                      setSearchQuery('');
-                      setAppliedSearchQuery('');
-                    }}
-                  >
-                    <span className="sr-only">Remove search</span>
-                    <svg className="h-2 w-2" fill="currentColor" viewBox="0 0 8 8">
-                      <path fillRule="evenodd" d="M4 3.293l2.146-2.147a.5.5 0 01.708.708L4.707 4l2.147 2.146a.5.5 0 01-.708.708L4 4.707l-2.146 2.147a.5.5 0 01-.708-.708L3.293 4 1.146 1.854a.5.5 0 01.708-.708L4 3.293z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </span>
-              )}
-              
-              <button
-                type="button"
-                className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 ml-1"
-                onClick={() => {
-                  setFilters({ status: 'all', priority: 'all' });
-                  setSearchQuery('');
-                  setAppliedSearchQuery('');
-                }}
-              >
-                Clear all
-              </button>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="space-y-3">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
             </div>
-          )}
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 sm:space-x-4">
+            <button
+              type="button"
+              onClick={() => setShowFilters(!showFilters)}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <FunnelIcon className="h-4 w-4 mr-2" />
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </button>
+
+            {showFilters && (
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                <div>
+                  <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <select
+                    id="status-filter"
+                    value={statusFilter}
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="priority-filter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Priority
+                  </label>
+                  <select
+                    id="priority-filter"
+                    value={priorityFilter}
+                    onChange={(e) => handleFilterChange('priority', e.target.value)}
+                    className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="all">All Priorities</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -390,119 +299,117 @@ const TaskList = () => {
         </div>
       )}
 
-      {tasks.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-gray-800 shadow rounded-lg">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-            />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No tasks</h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new task.</p>
-          <div className="mt-6">
-            <button
-              type="button"
-              onClick={() => setShowTaskForm(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-              New Task
-            </button>
-          </div>
+      {filteredTasks.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 dark:text-gray-400">No tasks found. Create a new task to get started!</p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
-          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-            {tasks.map((task) => (
-              <li key={task._id} className="px-4 py-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center">
+        <table className="w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
+          <thead className="bg-gray-50 dark:bg-gray-800">
+            <tr>
+              <th scope="col" className="w-2/5 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                Title
+              </th>
+              <th scope="col" className="w-1/6 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                Status
+              </th>
+              <th scope="col" className="w-1/6 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                Priority
+              </th>
+              <th scope="col" className="w-1/6 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                Due Date
+              </th>
+              <th scope="col" className="relative px-6 py-3">
+                <span className="sr-only">Actions</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            {filteredTasks.map((task) => (
+              <tr key={task._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td className="px-6 py-4 overflow-hidden">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center">
                       <input
                         type="checkbox"
                         checked={task.completed}
-                        onChange={() => handleToggleComplete(task)}
-                        disabled={updatingTasks.has(task._id)}
-                        className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
-                          updatingTasks.has(task._id) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                        }`}
+                        onChange={() => handleToggleComplete(task._id, task.completed)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       />
-                      <div className="ml-3">
-                        <p className={`text-sm font-medium ${task.completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
-                          {task.title}
-                        </p>
-                        {task.description && (
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                            {task.description}
-                          </p>
-                        )}
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${priorityColors[task.priority]}`}>
-                            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                          </span>
-                          <span className={`text-xs ${getDueDateClass(task.dueDate)}`}>
-                            {getDueDateStatus(task.dueDate)}
-                          </span>
-                        </div>
+                    </div>
+                    <div className="ml-4 min-w-0 flex-1">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white truncate" title={task.title}>
+                        {task.title}
                       </div>
+                      {task.description && (
+                        <div className="text-sm text-gray-500 dark:text-gray-400 truncate" title={task.description}>
+                          {task.description}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="ml-4 flex-shrink-0 flex space-x-2">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => handleEditClick(task)}
-                        className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30"
-                        title="Edit task"
-                        disabled={isDeleting}
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteClick(task)}
-                        className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 dark:hover:bg-red-900/30"
-                        title="Delete task"
-                        disabled={isDeleting}
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    statusColors[task.completed ? 'completed' : 'pending'] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                  }`}>
+                    {task.completed ? 'Completed' : 'Pending'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    priorityColors[task.priority] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                  }`}>
+                    {getPriorityDisplay(task.priority)}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <span className={`${isPast(parseISO(task.dueDate)) && task.status !== 'completed' ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {getDueDateStatus(task.dueDate)}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      onClick={() => handleEditClick(task)}
+                      className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                      aria-label="Edit task"
+                    >
+                      <PencilIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(task)}
+                      className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                      aria-label="Delete task"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
                   </div>
-                </div>
-              </li>
+                </td>
+              </tr>
             ))}
-          </ul>
-        </div>
+          </tbody>
+        </table>
       )}
-
-      {showTaskForm && (
-        <TaskForm 
-          onClose={() => {
-            setShowTaskForm(false);
-            setEditingTask(null);
-          }} 
-          onSubmit={handleTaskSubmit}
-          initialData={editingTask}
-          isSubmitting={isSubmitting}
-        />
-      )}
+      {/* Task Form Modal */}
+      <TaskForm
+        isOpen={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditingTask(null);
+        }}
+        onSubmit={handleTaskSubmit}
+        task={editingTask}
+        isSubmitting={isDeleting} // Reuse isDeleting state for form submission
+      />
       
+      {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
-        isOpen={!!taskToDelete}
-        onClose={() => setTaskToDelete(null)}
+        isOpen={isDeleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
         onConfirm={confirmDelete}
         title="Delete Task"
-        message={`Are you sure you want to delete "${taskToDelete?.title}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete "${taskToDelete?.title || 'this task'}"? This action cannot be undone.`}
         isDeleting={isDeleting}
       />
     </div>

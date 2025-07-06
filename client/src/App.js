@@ -5,9 +5,17 @@ import { ThemeProvider } from './context/ThemeContext';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import Dashboard from './pages/Dashboard';
+import Layout from './components/Layout';
 import PrivateRoute from './components/Routes/PrivateRoute';
 import PublicRoute from './components/Routes/PublicRoute';
 import './App.css';
+
+// Wrapper component for protected routes with layout
+const ProtectedLayout = ({ children }) => (
+  <PrivateRoute>
+    <Layout>{children}</Layout>
+  </PrivateRoute>
+);
 
 // Main App component with routing
 const AppContent = () => {
@@ -34,17 +42,13 @@ const AppContent = () => {
           }
         />
         
-        {/* Private routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
+        {/* Protected routes with layout */}
+        <Route element={<ProtectedLayout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          {/* Add more protected routes here */}
+        </Route>
         
-        {/* Default route */}
+        {/* Redirect root to dashboard if authenticated, otherwise to login */}
         <Route
           path="/"
           element={
@@ -56,22 +60,27 @@ const AppContent = () => {
           }
         />
         
-        {/* 404 Not Found */}
+        {/* 404 - Not Found */}
         <Route
           path="*"
           element={
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="text-center">
-                <h1 className="text-4xl font-bold text-gray-900 dark:text-white">404</h1>
-                <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">Page not found</p>
-                <button
-                  onClick={() => window.history.back()}
-                  className="mt-6 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                >
-                  Go back
-                </button>
+            isAuthenticated ? (
+              <Layout>
+                <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
+                  <div className="text-center">
+                    <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">404</h1>
+                    <p className="text-lg text-gray-600 dark:text-gray-300">Page not found</p>
+                  </div>
+                </div>
+              </Layout>
+            ) : (
+              <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="text-center">
+                  <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">404</h1>
+                  <p className="text-lg text-gray-600 dark:text-gray-300">Page not found</p>
+                </div>
               </div>
-            </div>
+            )
           }
         />
       </Routes>
