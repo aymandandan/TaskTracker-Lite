@@ -197,7 +197,7 @@ Enable users to toggle task completion with instant UI feedback.
 
 **Actions:**
 
-- PUT `/api/tasks/:id` to toggle `completed`
+- PUT `/api/tasks/:id/toggle-complete` to toggle `completed`
 
 **Steps:**
 

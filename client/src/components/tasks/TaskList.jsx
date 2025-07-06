@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import TaskForm from './TaskForm';
-import { getTasks, createTask, updateTask, deleteTask } from '../../services/taskService';
+import { getTasks, createTask, updateTask, deleteTask, toggleTaskCompletion } from '../../services/taskService';
 
 const ConfirmationDialog = ({ isOpen, onClose, onConfirm, title, message, isDeleting }) => {
   if (!isOpen) return null;
@@ -57,8 +57,9 @@ const TaskList = () => {
   const [error, setError] = useState('');
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [taskToDelete, setTaskToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [updatingTasks, setUpdatingTasks] = useState(new Set());
+  const [taskToDelete, setTaskToDelete] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchTasks = async () => {
@@ -110,6 +111,23 @@ const TaskList = () => {
 
   const handleDeleteClick = (task) => {
     setTaskToDelete(task);
+  };
+
+  const handleToggleComplete = async (task) => {
+    try {
+      setUpdatingTasks(prev => new Set([...prev, task._id]));
+      const updatedTask = await toggleTaskCompletion(task._id);
+      setTasks(tasks.map(t => t._id === updatedTask._id ? updatedTask : t));
+    } catch (error) {
+      console.error('Error toggling task completion:', error);
+      setError(error.message || 'Failed to update task status');
+    } finally {
+      setUpdatingTasks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(task._id);
+        return newSet;
+      });
+    }
   };
 
   const confirmDelete = async () => {
@@ -229,8 +247,11 @@ const TaskList = () => {
                       <input
                         type="checkbox"
                         checked={task.completed}
-                        onChange={() => {}}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        onChange={() => handleToggleComplete(task)}
+                        disabled={updatingTasks.has(task._id)}
+                        className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                          updatingTasks.has(task._id) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                        }`}
                       />
                       <div className="ml-3">
                         <p className={`text-sm font-medium ${task.completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>

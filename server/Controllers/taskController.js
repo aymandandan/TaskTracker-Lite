@@ -2,6 +2,41 @@ const Task = require('../Models/Task');
 const { validationResult } = require('express-validator');
 const mongoose = require('mongoose');
 
+// @desc    Toggle task completion status
+// @route   PUT /api/tasks/:id/complete
+// @access  Private
+exports.toggleTaskComplete = async (req, res) => {
+  try {
+    // Check if ID is valid
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid task ID' });
+    }
+
+    // Find the task
+    const task = await Task.findOne({
+      _id: req.params.id,
+      owner: req.user.id,
+    });
+
+    // Check if task exists
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Toggle the completed status
+    task.completed = !task.completed;
+    task.completedAt = task.completed ? new Date() : null;
+
+    // Save the updated task
+    const updatedTask = await task.save();
+
+    res.json(updatedTask);
+  } catch (error) {
+    console.error('Error toggling task completion:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // @desc    Create a new task
 // @route   POST /api/tasks
 // @access  Private
@@ -14,14 +49,14 @@ exports.createTask = async (req, res) => {
     }
 
     const { title, description, dueDate, priority } = req.body;
-    
+
     // Create new task
     const task = await Task.create({
       title,
       description,
       dueDate,
       priority: priority || 'medium',
-      owner: req.user.id
+      owner: req.user.id,
     });
 
     // Populate owner details
@@ -29,14 +64,14 @@ exports.createTask = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      data: task
+      data: task,
     });
   } catch (error) {
     console.error('Error creating task:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -48,27 +83,26 @@ exports.getTasks = async (req, res) => {
   try {
     // Build query
     const query = { owner: req.user.id };
-    
+
     // Filter by completion status if provided
     if (req.query.completed) {
       query.completed = req.query.completed === 'true';
     }
 
     // Execute query
-    const tasks = await Task.find(query)
-      .sort({ dueDate: 1, createdAt: -1 });
+    const tasks = await Task.find(query).sort({ dueDate: 1, createdAt: -1 });
 
     res.status(200).json({
       success: true,
       count: tasks.length,
-      data: tasks
+      data: tasks,
     });
   } catch (error) {
     console.error('Error fetching tasks:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -92,7 +126,7 @@ exports.updateTask = async (req, res) => {
     if (!task) {
       return res.status(404).json({
         success: false,
-        message: 'Task not found or not authorized'
+        message: 'Task not found or not authorized',
       });
     }
 
@@ -109,14 +143,14 @@ exports.updateTask = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: updatedTask
+      data: updatedTask,
     });
   } catch (error) {
     console.error('Error updating task:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -133,7 +167,7 @@ exports.deleteTask = async (req, res) => {
     if (!task) {
       return res.status(404).json({
         success: false,
-        message: 'Task not found or not authorized'
+        message: 'Task not found or not authorized',
       });
     }
 
@@ -143,14 +177,14 @@ exports.deleteTask = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Task deleted successfully',
-      data: { id }
+      data: { id },
     });
   } catch (error) {
     console.error('Error deleting task:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message
+      error: error.message,
     });
   }
 };

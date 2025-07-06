@@ -6,7 +6,8 @@ const {
   createTask,
   getTasks,
   updateTask,
-  deleteTask
+  deleteTask,
+  toggleTaskComplete
 } = require('../Controllers/taskController');
 
 // Apply protect middleware to all routes
@@ -50,5 +51,10 @@ router.put(
 // @desc    Delete a task
 // @access  Private
 router.delete('/:id', deleteTask);
+
+// @route   PUT /api/tasks/:id/toggle-complete
+// @desc    Toggle task completion status
+// @access  Private
+router.put('/:id/toggle-complete', toggleTaskComplete);
 
 module.exports = router;

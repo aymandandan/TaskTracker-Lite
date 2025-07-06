@@ -42,15 +42,32 @@ export const getTasks = async (filters = {}) => {
  */
 export const updateTask = async (taskId, taskData) => {
   try {
-    const response = await axios.put(
-      `${API_BASE_URL}/tasks/${taskId}`,
-      taskData,
-      { withCredentials: true }
-    );
+    const response = await axios.put(`${API_BASE_URL}/tasks/${taskId}`, taskData, {
+      withCredentials: true,
+    });
     return response.data;
   } catch (error) {
     console.error('Error updating task:', error);
     throw error.response?.data || { message: 'Failed to update task' };
+  }
+};
+
+/**
+ * Toggle task completion status
+ * @param {string} taskId - ID of the task to toggle completion
+ * @returns {Promise<Object>} The updated task
+ */
+export const toggleTaskCompletion = async (taskId) => {
+  try {
+    const response = await axios.put(
+      `${API_BASE_URL}/tasks/${taskId}/toggle-complete`,
+      {},
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling task completion:', error);
+    throw error.response?.data || { message: 'Failed to toggle task completion' };
   }
 };
 
