@@ -4,9 +4,15 @@ const User = require('../Models/User');
 // Middleware to protect routes
 exports.protect = async (req, res, next) => {
   try {
-    // 1) Getting token and check if it's there
+    // 1) Getting token from cookies or Authorization header
     let token;
-    if (
+    
+    // Check for token in cookies first
+    if (req.cookies?.jwt) {
+      token = req.cookies.jwt;
+    } 
+    // Fall back to Authorization header (for backward compatibility)
+    else if (
       req.headers.authorization &&
       req.headers.authorization.startsWith('Bearer')
     ) {

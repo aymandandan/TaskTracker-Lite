@@ -6,16 +6,13 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for cookies if using httpOnly cookies
+  withCredentials: true, // Required for HTTP-only cookies
 });
 
-// Request interceptor to add auth token to requests
+// Request interceptor for adding any additional headers if needed
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // You can add any request headers here if needed
     return config;
   },
   (error) => {
@@ -29,12 +26,8 @@ api.interceptors.response.use(
   (error) => {
     // Handle common errors (e.g., 401 Unauthorized)
     if (error.response?.status === 401) {
-      // Clear auth data and redirect to login
-      localStorage.removeItem('token');
-      delete api.defaults.headers.common['Authorization'];
-      
-      // Only redirect if not already on login/register page
-      if (!window.location.pathname.includes('/auth')) {
+      // Clear any existing auth state
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
         window.location.href = '/login';
       }
     }

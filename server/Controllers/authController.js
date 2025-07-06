@@ -9,6 +9,32 @@ const generateToken = (id) => {
   });
 };
 
+// Set JWT token in HTTP-only cookie
+const sendToken = (user, statusCode, res) => {
+  const token = generateToken(user._id);
+  
+  // Cookie options
+  const cookieOptions = {
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
+  };
+
+  // Remove password from output
+  user.password = undefined;
+
+  res.status(statusCode).cookie('jwt', token, cookieOptions).json({
+    status: 'success',
+    data: {
+      user,
+    },
+  });
+};
+
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
@@ -42,19 +68,8 @@ exports.register = async (req, res, next) => {
       password,
     });
 
-    // Generate token
-    const token = generateToken(user._id);
-
-    // Remove password from output
-    user.password = undefined;
-
-    res.status(201).json({
-      status: 'success',
-      token,
-      data: {
-        user,
-      },
-    });
+    // Send token in HTTP-only cookie
+    sendToken(user, 201, res);
   } catch (error) {
     next(error);
   }
@@ -85,19 +100,8 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    // 3) If everything ok, send token to client
-    const token = generateToken(user._id);
-
-    // Remove password from output
-    user.password = undefined;
-
-    res.status(200).json({
-      status: 'success',
-      token,
-      data: {
-        user,
-      },
-    });
+    // 3) If everything ok, send token in HTTP-only cookie
+    sendToken(user, 200, res);
   } catch (error) {
     next(error);
   }

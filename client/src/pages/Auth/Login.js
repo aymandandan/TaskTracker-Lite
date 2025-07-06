@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/UI/Button';
 import Input from '../../components/UI/Input';
@@ -13,9 +13,7 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const from = location.state?.from?.pathname || '/dashboard';
+  // The PrivateRoute will handle the redirection after login
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -66,15 +64,13 @@ const Login = () => {
         password: formData.password,
       });
       
-      // Only navigate on successful login
-      navigate(from, { replace: true });
+      // The AuthContext will handle the redirection through the PrivateRoute
+      // We don't need to redirect manually here
     } catch (error) {
       console.error('Login failed:', error);
       setErrors({
-        form: error.response?.data?.message || 'Login failed. Please check your credentials and try again.',
+        form: error.message || 'Login failed. Please check your credentials and try again.',
       });
-      // Prevent the default form submission behavior
-      e.preventDefault();
     } finally {
       setIsLoading(false);
     }
@@ -92,7 +88,6 @@ const Login = () => {
             <Link
               to="/register"
               className="font-medium text-indigo-600 hover:text-indigo-500"
-              state={{ from: location.state?.from }}
             >
               create a new account
             </Link>

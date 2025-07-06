@@ -11,57 +11,54 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Set auth token in axios headers
-  const setAuthToken = (token) => {
-    if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      localStorage.setItem('token', token);
-    } else {
-      delete api.defaults.headers.common['Authorization'];
-      localStorage.removeItem('token');
-    }
-  };
+  // Configure axios to send credentials with every request
+  useEffect(() => {
+    api.defaults.withCredentials = true;
+  }, []);
 
   // Check if user is authenticated on initial load
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        if (token) {
-          setAuthToken(token);
-          const response = await api.get('/auth/me');
-          setUser(response.data.data.user);
-        }
+        const response = await api.get('/auth/me');
+        setUser(response.data.data.user);
       } catch (error) {
         console.error('Authentication check failed:', error);
-        // logout();
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
 
     checkAuth();
-  }, [token]);
+  }, []);
 
   // Login function
   const login = async (credentials) => {
     try {
       setError(null);
-      const response = await api.post('/auth/login', credentials);
-      const { token, user } = response.data.data;
+      setIsLoading(true);
+      const response = await api.post('/auth/login', credentials, {
+        withCredentials: true
+      });
       
+      // The user data is returned in the response, but the token is in the cookie
+      const { user } = response.data.data;
       setUser(user);
-      setToken(token);
-      setAuthToken(token);
       
-      return response.data;
+      // Return the full response including user data
+      return { ...response.data, user };
     } catch (error) {
-      setError(error.response?.data?.message || 'Login failed');
-      throw error;
+      console.error('Login error:', error);
+      const errorMessage = error.response?.data?.message || 'Login failed';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -69,12 +66,13 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       setError(null);
-      const response = await api.post('/auth/register', userData);
-      const { token, user } = response.data.data;
+      const response = await api.post('/auth/register', userData, {
+        withCredentials: true
+      });
       
+      // The user data is returned in the response, but the token is in the cookie
+      const { user } = response.data.data;
       setUser(user);
-      setToken(token);
-      setAuthToken(token);
       
       return response.data;
     } catch (error) {
@@ -84,11 +82,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Logout function
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    setAuthToken(null);
-    navigate('/login');
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout', {}, { withCredentials: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      // Clear any axios authorization headers
+      delete api.defaults.headers.common['Authorization'];
+      navigate('/login');
+    }
   };
 
   // Update user data
@@ -99,21 +103,32 @@ export const AuthProvider = ({ children }) => {
     }));
   };
 
-  const value = {
-    user,
-    token,
-    isLoading,
-    error,
-    isAuthenticated: !!user,
-    login,
-    register,
-    logout,
-    updateUser,
-  };
+  // Add isAuthenticated based on user state
+  const isAuthenticated = !!user;
+
+  // Only render children once we've checked auth state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
 
   return (
-    <AuthContext.Provider value={value}>
-      {!isLoading && children}
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated,
+        error,
+        login,
+        register,
+        logout,
+        updateUser,
+      }}
+    >
+      {children}
     </AuthContext.Provider>
   );
 };
