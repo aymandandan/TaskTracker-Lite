@@ -6,6 +6,7 @@ const cookieParser = require('cookie-parser');
 
 // Routes
 const authRoutes = require('./Routes/authRoutes');
+const taskRoutes = require('./Routes/taskRoutes');
 
 // Initialize express app
 const app = express();
@@ -65,6 +66,7 @@ if (!process.env.JWT_SECRET) {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
