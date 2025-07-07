@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
+import { useTheme } from '../../context/ThemeContext';
 
 const TaskForm = ({ isOpen, onClose, onSubmit, task: initialData = {}, isSubmitting = false }) => {
   const [error, setError] = useState('');
+  const { isDark } = useTheme();
   
   const { register, handleSubmit, formState: { errors }, setValue } = useForm({
     defaultValues: {
@@ -50,85 +52,103 @@ const TaskForm = ({ isOpen, onClose, onSubmit, task: initialData = {}, isSubmitt
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className={`rounded-lg shadow-xl w-full max-w-md transition-colors duration-200 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+        <div className={`flex justify-between items-center p-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
+          <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
             {initialData?._id ? 'Edit Task' : 'Add New Task'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-            aria-label="Close"
+            className={`${isDark ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-700'}`}
+            disabled={isSubmitting}
           >
             <XMarkIcon className="h-6 w-6" />
           </button>
         </div>
         
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="p-6">
           {error && (
-            <div className="p-3 bg-red-50 text-red-700 rounded-md text-sm">
+            <div className={`mb-4 p-3 rounded ${isDark ? 'bg-red-900 bg-opacity-30 border-red-700 text-red-200' : 'bg-red-100 border-red-400 text-red-700 border'}`}>
               {error}
             </div>
           )}
           
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Title *
+          <div className="mb-4">
+            <label htmlFor="title" className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+              Title <span className="text-red-500">*</span>
             </label>
             <input
               id="title"
               type="text"
               {...register('title', { required: 'Title is required' })}
-              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                errors.title ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+              className={`w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.title 
+                  ? 'border-red-500' 
+                  : isDark 
+                    ? 'border-gray-600 bg-gray-700 text-white' 
+                    : 'border-gray-300 bg-white'
               }`}
-              placeholder="Task title"
+              disabled={isSubmitting}
             />
             {errors.title && (
-              <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+              <p className="mt-1 text-sm text-red-500">{errors.title.message}</p>
             )}
           </div>
           
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <div className="mb-4">
+            <label htmlFor="description" className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
               Description
             </label>
             <textarea
               id="description"
               rows={3}
               {...register('description')}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              placeholder="Task description (optional)"
+              className={`w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isDark 
+                  ? 'border-gray-600 bg-gray-700 text-white' 
+                  : 'border-gray-300 bg-white'
+              }`}
+              disabled={isSubmitting}
             />
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Due Date *
+              <label htmlFor="dueDate" className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                Due Date <span className="text-red-500">*</span>
               </label>
               <input
                 id="dueDate"
                 type="date"
                 {...register('dueDate', { required: 'Due date is required' })}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                  errors.dueDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                className={`w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.dueDate 
+                    ? 'border-red-500' 
+                    : isDark 
+                      ? 'border-gray-600 bg-gray-700 text-white' 
+                      : 'border-gray-300 bg-white'
                 }`}
+                disabled={isSubmitting}
               />
               {errors.dueDate && (
-                <p className="mt-1 text-sm text-red-600">{errors.dueDate.message}</p>
+                <p className="mt-1 text-sm text-red-500">{errors.dueDate.message}</p>
               )}
             </div>
             
             <div>
-              <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="priority" className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                 Priority
               </label>
               <select
                 id="priority"
                 {...register('priority')}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                className={`w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  isDark 
+                    ? 'border-gray-600 bg-gray-700 text-white' 
+                    : 'border-gray-300 bg-white'
+                }`}
+                disabled={isSubmitting}
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -137,18 +157,22 @@ const TaskForm = ({ isOpen, onClose, onSubmit, task: initialData = {}, isSubmitt
             </div>
           </div>
           
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="mt-6 flex justify-end space-x-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600"
+              className={`px-4 py-2 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                isDark
+                  ? 'border-gray-600 text-gray-100 bg-gray-700 hover:bg-gray-600 focus:ring-offset-gray-800'
+                  : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-offset-white'
+              }`}
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-24"
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               disabled={Object.keys(errors).length > 0 || isSubmitting}
             >
               {isSubmitting ? (

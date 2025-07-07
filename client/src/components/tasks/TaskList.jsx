@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useTheme } from '../../context/ThemeContext';
 import { format, parseISO, isPast, isToday } from 'date-fns';
 import { PlusIcon, PencilIcon, TrashIcon, FunnelIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import TaskForm from './TaskForm';
@@ -46,6 +47,7 @@ const ConfirmationDialog = ({ isOpen, onClose, onConfirm, title, message, isDele
 };
 
 const TaskList = () => {
+  useTheme(); // This ensures the theme context is properly initialized
   const [tasks, setTasks] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
@@ -201,9 +203,9 @@ const TaskList = () => {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="sm:flex sm:items-center sm:justify-between mb-4">
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden transition-colors duration-200">
+      <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-700 sm:px-6">
+        <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 flex justify-between transition-colors duration-200 mb-4">
           <h2 className="text-lg font-medium text-gray-900 dark:text-white">My Tasks</h2>
           <div className="mt-3 sm:mt-0 sm:ml-4">
             <button
@@ -363,7 +365,7 @@ const TaskList = () => {
                     {getPriorityDisplay(task.priority)}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                   <span className={`${isPast(parseISO(task.dueDate)) && task.status !== 'completed' ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>
                     {getDueDateStatus(task.dueDate)}
                   </span>

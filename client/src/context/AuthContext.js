@@ -84,14 +84,42 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
+      // Save current theme before logout
+      const currentTheme = localStorage.getItem('theme');
+      
       await api.post('/auth/logout', {}, { withCredentials: true });
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
+      
+      // Clear user state and any stored data
       setUser(null);
+      localStorage.removeItem('user');
+      
       // Clear any axios authorization headers
       delete api.defaults.headers.common['Authorization'];
-      navigate('/login');
+      
+      // Clear any cached requests
+      try {
+        await api.get('/auth/clear-cache');
+      } catch (cacheError) {
+        console.error('Cache clear error:', cacheError);
+      }
+      
+      // Restore the theme
+      if (currentTheme) {
+        localStorage.setItem('theme', currentTheme);
+      }
+      
+      // Navigate to login page without full page reload
+      navigate('/login', { replace: true });
+      
+      return true;
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if the server logout fails, we should still clear the local state
+      setUser(null);
+      localStorage.removeItem('user');
+      delete api.defaults.headers.common['Authorization'];
+      navigate('/login', { replace: true });
+      return false;
     }
   };
 

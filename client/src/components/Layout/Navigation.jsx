@@ -1,28 +1,53 @@
 import React, { useState, Fragment } from 'react';
-import { Menu, Transition } from '@headlessui/react';
-import { Bars3Icon, XMarkIcon, UserCircleIcon, ArrowLeftOnRectangleIcon } from '@heroicons/react/24/outline';
+import { Menu, Transition, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
+import { 
+  Bars3Icon, 
+  XMarkIcon, 
+  UserCircleIcon, 
+  ArrowLeftStartOnRectangleIcon,
+  SunIcon,
+  MoonIcon
+} from '@heroicons/react/24/outline';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 
 const Navigation = ({ sidebarOpen, setSidebarOpen }) => {
   const { currentUser, logout } = useAuth();
+  const { toggleTheme, isDark } = useTheme();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
-      await logout();
-      navigate('/login');
+      // Get current theme before logout to preserve it
+      const currentTheme = localStorage.getItem('theme');
+      
+      const success = await logout();
+      
+      if (!success) {
+        console.log('Logged out with local cleanup');
+      }
+      
+      // Ensure theme is preserved after navigation
+      if (currentTheme) {
+        // Small delay to ensure navigation completes before theme is reapplied
+        setTimeout(() => {
+          document.documentElement.classList.toggle('dark', currentTheme === 'dark');
+          document.documentElement.setAttribute('data-theme', currentTheme);
+        }, 0);
+      }
     } catch (error) {
       console.error('Failed to log out', error);
+      navigate('/login', { replace: true });
     }
   };
 
   return (
     <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-sm">
       <div className="px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
+        <div className="flex lg:justify-end justify-between h-16">
+          <div className="lg:hidden flex items-center">
             <button
               type="button"
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
@@ -36,11 +61,26 @@ const Navigation = ({ sidebarOpen, setSidebarOpen }) => {
             </div>
           </div>
 
-          <div className="flex items-center">
-            <div className="hidden md:ml-4 md:flex md:items-center">
+          <div className="flex items-center space-x-4">
+            {/* Theme Toggle */}
+            <div className="flex items-center">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800"
+                aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+              >
+                {isDark ? (
+                  <SunIcon className="h-5 w-5" aria-hidden="true" />
+                ) : (
+                  <MoonIcon className="h-5 w-5" aria-hidden="true" />
+                )}
+              </button>
+            </div>
+            
+            <div className="hidden md:ml-2 md:flex md:items-center">
               <Menu as="div" className="relative ml-3">
                 <div>
-                  <Menu.Button className="flex max-w-xs items-center rounded-full bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                  <MenuButton className="flex max-w-xs items-center rounded-full bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                     <span className="sr-only">Open user menu</span>
                     <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
                       <UserCircleIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
@@ -48,7 +88,7 @@ const Navigation = ({ sidebarOpen, setSidebarOpen }) => {
                     <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                       {currentUser?.username || 'User'}
                     </span>
-                  </Menu.Button>
+                  </MenuButton>
                 </div>
                 <Transition
                   as={Fragment}
@@ -59,36 +99,37 @@ const Navigation = ({ sidebarOpen, setSidebarOpen }) => {
                   leaveFrom="transform opacity-100 scale-100"
                   leaveTo="transform opacity-0 scale-95"
                 >
-                  <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white dark:bg-gray-800 py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                    <Menu.Item>
-                      {({ active }) => (
+                  <MenuItems className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white dark:bg-gray-800 py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <MenuItem as="div">
+                      {({ focus }) => (
                         <button
                           onClick={handleLogout}
                           className={`${
-                            active ? 'bg-gray-100 dark:bg-gray-700' : ''
+                            focus ? 'bg-gray-100 dark:bg-gray-700' : ''
                           } flex w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200`}
                         >
-                          <ArrowLeftOnRectangleIcon className="mr-3 h-5 w-5 text-gray-500 dark:text-gray-400" />
+                          <ArrowLeftStartOnRectangleIcon className="mr-3 h-5 w-5 text-gray-500 dark:text-gray-400" />
                           Sign out
                         </button>
                       )}
-                    </Menu.Item>
-                  </Menu.Items>
+                    </MenuItem>
+                  </MenuItems>
                 </Transition>
               </Menu>
             </div>
 
             {/* Mobile menu button */}
-            <div className="md:hidden">
+            <div className="flex items-center space-x-2">
               <button
+                type="button"
+                className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
               >
                 <span className="sr-only">Open main menu</span>
                 {mobileMenuOpen ? (
                   <XMarkIcon className="block h-6 w-6" aria-hidden="true" />
                 ) : (
-                  <Bars3Icon className="block h-6 w-6" aria-hidden="true" />
+                  <UserCircleIcon className="block h-6 w-6" aria-hidden="true" />
                 )}
               </button>
             </div>
