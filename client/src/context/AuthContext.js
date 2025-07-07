@@ -12,7 +12,6 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   // Configure axios to send credentials with every request
@@ -40,43 +39,36 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = async (credentials) => {
     try {
-      setError(null);
-      setIsLoading(true);
       const response = await api.post('/auth/login', credentials, {
-        withCredentials: true
+        withCredentials: true,
       });
-      
+
       // The user data is returned in the response, but the token is in the cookie
       const { user } = response.data.data;
       setUser(user);
-      
+
       // Return the full response including user data
       return { ...response.data, user };
     } catch (error) {
       console.error('Login error:', error);
-      const errorMessage = error.response?.data?.message || 'Login failed';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setIsLoading(false);
+      throw error;
     }
   };
 
   // Register function
   const register = async (userData) => {
     try {
-      setError(null);
       const response = await api.post('/auth/register', userData, {
-        withCredentials: true
+        withCredentials: true,
       });
-      
+
       // The user data is returned in the response, but the token is in the cookie
       const { user } = response.data.data;
       setUser(user);
-      
-      return response.data;
+
+      return response;
     } catch (error) {
-      setError(error.response?.data?.message || 'Registration failed');
+      console.error('Registration error:', error);
       throw error;
     }
   };
@@ -86,31 +78,31 @@ export const AuthProvider = ({ children }) => {
     try {
       // Save current theme before logout
       const currentTheme = localStorage.getItem('theme');
-      
+
       await api.post('/auth/logout', {}, { withCredentials: true });
-      
+
       // Clear user state and any stored data
       setUser(null);
       localStorage.removeItem('user');
-      
+
       // Clear any axios authorization headers
       delete api.defaults.headers.common['Authorization'];
-      
+
       // Clear any cached requests
       try {
         await api.get('/auth/clear-cache');
       } catch (cacheError) {
         console.error('Cache clear error:', cacheError);
       }
-      
+
       // Restore the theme
       if (currentTheme) {
         localStorage.setItem('theme', currentTheme);
       }
-      
+
       // Navigate to login page without full page reload
       navigate('/login', { replace: true });
-      
+
       return true;
     } catch (error) {
       console.error('Logout error:', error);
@@ -125,9 +117,9 @@ export const AuthProvider = ({ children }) => {
 
   // Update user data
   const updateUser = (userData) => {
-    setUser(prev => ({
+    setUser((prev) => ({
       ...prev,
-      ...userData
+      ...userData,
     }));
   };
 
@@ -149,7 +141,6 @@ export const AuthProvider = ({ children }) => {
         user,
         isLoading,
         isAuthenticated,
-        error,
         login,
         register,
         logout,

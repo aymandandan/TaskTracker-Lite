@@ -72,7 +72,7 @@ const Login = () => {
     } catch (error) {
       console.error('Login failed:', error);
       setErrors({
-        form: error.message || 'Login failed. Please check your credentials and try again.',
+        form: error?.response?.data?.message || 'Login failed. Please check your credentials and try again.',
       });
     } finally {
       setIsLoading(false);

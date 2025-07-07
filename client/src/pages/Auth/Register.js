@@ -89,10 +89,14 @@ const Register = () => {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div
+      className={`min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-200 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}
+    >
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className={`mt-6 text-center text-3xl font-extrabold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <h2
+            className={`mt-6 text-center text-3xl font-extrabold ${isDark ? 'text-white' : 'text-gray-900'}`}
+          >
             Create a new account
           </h2>
           <p className={`mt-2 text-center text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
@@ -119,7 +123,9 @@ const Register = () => {
         )}
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className={`rounded-md shadow-sm -space-y-px ${isDark ? 'bg-gray-800 p-6 rounded-lg' : 'bg-white p-6 rounded-lg shadow'}`}>
+          <div
+            className={`rounded-md shadow-sm -space-y-px ${isDark ? 'bg-gray-800 p-6 rounded-lg' : 'bg-white p-6 rounded-lg shadow'}`}
+          >
             <div className="mb-4">
               <Input
                 id="username"
@@ -186,20 +192,24 @@ const Register = () => {
                 type="checkbox"
                 className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-indigo-600 dark:checked:border-indigo-600"
                 checked={formData.agreeToTerms}
-                onChange={(e) =>
-                  setFormData({ ...formData, agreeToTerms: e.target.checked })
-                }
+                onChange={(e) => setFormData({ ...formData, agreeToTerms: e.target.checked })}
               />
               <label
                 htmlFor="terms"
                 className={`ml-2 block text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}
               >
                 I agree to the{' '}
-                <button type="button" className="text-indigo-500 hover:text-indigo-400 focus:outline-none">
+                <button
+                  type="button"
+                  className="text-indigo-500 hover:text-indigo-400 focus:outline-none"
+                >
                   Terms
                 </button>{' '}
                 and{' '}
-                <button type="button" className="text-indigo-500 hover:text-indigo-400 focus:outline-none">
+                <button
+                  type="button"
+                  className="text-indigo-500 hover:text-indigo-400 focus:outline-none"
+                >
                   Privacy Policy
                 </button>
               </label>

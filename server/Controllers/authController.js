@@ -123,3 +123,20 @@ exports.getMe = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Logout user
+// @route   POST /api/auth/logout
+// @access  Private
+exports.logout = async (req, res, next) => {
+  try {
+    res.clearCookie('jwt');
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user: null,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
