@@ -13,6 +13,7 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    agreeToTerms: false,
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -21,10 +22,10 @@ const Register = () => {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === 'checkbox' ? checked : value,
     }));
 
     // Clear error when user starts typing
@@ -32,6 +33,14 @@ const Register = () => {
       setErrors((prev) => ({
         ...prev,
         [name]: '',
+      }));
+    }
+    
+    // Clear form-level error when any input changes
+    if (errors.form) {
+      setErrors((prev) => ({
+        ...prev,
+        form: '',
       }));
     }
   };
@@ -54,11 +63,15 @@ const Register = () => {
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (!validatePassword(formData.password)) {
-      newErrors.password = 'Password must be at least 8 characters long';
+      newErrors.password = 'Password must be at least 8 characters long and include at least one number and one special character';
     }
 
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
+    }
+    
+    if (!formData.agreeToTerms) {
+      newErrors.agreeToTerms = 'You must agree to the terms and conditions';
     }
 
     setErrors(newErrors);
@@ -188,42 +201,39 @@ const Register = () => {
             <div className="flex items-center">
               <input
                 id="terms"
-                name="terms"
+                name="agreeToTerms"
                 type="checkbox"
                 className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded dark:border-gray-600 dark:bg-gray-700 dark:checked:bg-indigo-600 dark:checked:border-indigo-600"
                 checked={formData.agreeToTerms}
-                onChange={(e) => setFormData({ ...formData, agreeToTerms: e.target.checked })}
+                onChange={handleChange}
               />
               <label
                 htmlFor="terms"
                 className={`ml-2 block text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}
               >
                 I agree to the{' '}
-                <button
-                  type="button"
-                  className="text-indigo-500 hover:text-indigo-400 focus:outline-none"
-                >
+                <Link to="/terms" className="font-medium text-indigo-500 hover:text-indigo-400">
                   Terms
-                </button>{' '}
+                </Link>{' '}
                 and{' '}
-                <button
-                  type="button"
-                  className="text-indigo-500 hover:text-indigo-400 focus:outline-none"
-                >
+                <Link to="/privacy" className="font-medium text-indigo-500 hover:text-indigo-400">
                   Privacy Policy
-                </button>
+                </Link>
               </label>
             </div>
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              className="w-full flex justify-center"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Creating account...' : 'Create Account'}
-            </Button>
+            {errors.agreeToTerms && (
+              <p className="mt-1 text-sm text-red-600">{errors.agreeToTerms}</p>
+            )}
           </div>
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            className="w-full flex justify-center"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Creating account...' : 'Create Account'}
+          </Button>
         </form>
       </div>
     </div>
