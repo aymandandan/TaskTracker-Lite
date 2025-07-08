@@ -1,5 +1,4 @@
-import axios from 'axios';
-const API_BASE_URL = process.env.REACT_APP_API_URL;
+import { tasksAPI } from './api';
 
 /**
  * Create a new task
@@ -8,7 +7,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL;
  */
 export const createTask = async (taskData) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/tasks`, taskData, { withCredentials: true });
+    const response = await tasksAPI.create(taskData);
     return response.data;
   } catch (error) {
     console.error('Error creating task:', error);
@@ -23,10 +22,7 @@ export const createTask = async (taskData) => {
  */
 export const getTasks = async (filters = {}) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/tasks`, {
-      params: filters,
-      withCredentials: true,
-    });
+    const response = await tasksAPI.get(filters);
     return response.data;
   } catch (error) {
     console.error('Error fetching tasks:', error);
@@ -42,9 +38,7 @@ export const getTasks = async (filters = {}) => {
  */
 export const updateTask = async (taskId, taskData) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/tasks/${taskId}`, taskData, {
-      withCredentials: true,
-    });
+    const response = await tasksAPI.update(taskId, taskData);
     return response.data;
   } catch (error) {
     console.error('Error updating task:', error);
@@ -59,11 +53,7 @@ export const updateTask = async (taskId, taskData) => {
  */
 export const toggleTaskCompletion = async (taskId) => {
   try {
-    const response = await axios.put(
-      `${API_BASE_URL}/tasks/${taskId}/toggle-complete`,
-      {},
-      { withCredentials: true }
-    );
+    const response = await tasksAPI.toggleCompletion(taskId);
     return response.data;
   } catch (error) {
     console.error('Error toggling task completion:', error);
@@ -78,9 +68,7 @@ export const toggleTaskCompletion = async (taskId) => {
  */
 export const deleteTask = async (taskId) => {
   try {
-    const response = await axios.delete(`${API_BASE_URL}/tasks/${taskId}`, {
-      withCredentials: true,
-    });
+    const response = await tasksAPI.delete(taskId);
     return response.data;
   } catch (error) {
     console.error('Error deleting task:', error);

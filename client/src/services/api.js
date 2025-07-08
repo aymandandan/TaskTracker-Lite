@@ -47,9 +47,13 @@ export const authAPI = {
   logout: () => api.post('/auth/logout'),
 };
 
-// Tasks API (will be used in future prompts)
+// Tasks API
 export const tasksAPI = {
-  // Will be implemented in future prompts
+  create: (taskData) => api.post('/tasks', taskData),
+  get: (filters) => api.get('/tasks', { params: filters }),
+  update: (taskId, taskData) => api.put(`/tasks/${taskId}`, taskData),
+  toggleCompletion: (taskId) => api.put(`/tasks/${taskId}/toggle-complete`, {}),
+  delete: (taskId) => api.delete(`/tasks/${taskId}`),
 };
 
 export default api;
