@@ -26,8 +26,11 @@ api.interceptors.response.use(
   (error) => {
     // Handle common errors (e.g., 401 Unauthorized)
     if (error.response?.status === 401) {
-      // Clear any existing auth state
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+      // Skip redirection for certain routes
+      const currentPath = window.location.pathname;
+      if (currentPath.startsWith('/reset-password') || currentPath === '/login' || currentPath === '/register') {
+        // Do nothing for these routes
+      } else {
         window.location.href = '/login';
       }
     }

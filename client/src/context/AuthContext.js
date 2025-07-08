@@ -123,6 +123,41 @@ export const AuthProvider = ({ children }) => {
     }));
   };
 
+  // Forgot password function
+  const forgotPassword = async (email) => {
+    try {
+      const response = await api.post('/auth/forgot-password', { email });
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      const message = error.response?.data?.message || 'Failed to send reset email. Please try again.';
+      return { success: false, message };
+    }
+  };
+
+  // Reset password function
+  const resetPassword = async (token, newPassword) => {
+    try {
+      const response = await api.patch(`/auth/reset-password/${token}`, { password: newPassword });
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      const message = error.response?.data?.message || 'Failed to reset password. Please try again.';
+      return { success: false, message };
+    }
+  };
+
+  // Check if reset token is valid
+  const checkTokenValidity = async (token) => {
+    try {
+      await api.get(`/auth/check-token/${token}`);
+      return { valid: true };
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return { valid: false, message: error.response?.data?.message || 'Token is invalid or has expired' };
+    }
+  };
+
   // Add isAuthenticated based on user state
   const isAuthenticated = !!user;
 
@@ -140,11 +175,14 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         isLoading,
-        isAuthenticated,
         login,
         register,
         logout,
+        forgotPassword,
+        resetPassword,
+        checkTokenValidity,
         updateUser,
+        isAuthenticated,
       }}
     >
       {children}

@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
+import ForgotPassword from './pages/Auth/ForgotPassword';
+import ResetPassword from './pages/Auth/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Layout from './components/Layout';
 import PrivateRoute from './components/Routes/PrivateRoute';
@@ -23,7 +25,9 @@ const AppContent = () => {
   const { theme } = useTheme();
 
   return (
-    <div className={`min-h-screen transition-colors duration-200 ${theme === 'dark' ? 'dark' : ''}`}>
+    <div
+      className={`min-h-screen transition-colors duration-200 ${theme === 'dark' ? 'dark' : ''}`}
+    >
       <Routes>
         {/* Public routes */}
         <Route
@@ -42,13 +46,29 @@ const AppContent = () => {
             </PublicRoute>
           }
         />
-        
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/reset-password/:token"
+          element={
+            <PublicRoute>
+              <ResetPassword />
+            </PublicRoute>
+          }
+        />
+
         {/* Protected routes with layout */}
         <Route element={<ProtectedLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           {/* Add more protected routes here */}
         </Route>
-        
+
         {/* Redirect root to dashboard if authenticated, otherwise to login */}
         <Route
           path="/"
@@ -60,7 +80,7 @@ const AppContent = () => {
             )
           }
         />
-        
+
         {/* 404 - Not Found */}
         <Route
           path="*"

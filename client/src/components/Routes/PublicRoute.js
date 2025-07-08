@@ -14,8 +14,8 @@ const PublicRoute = ({ children }) => {
     );
   }
 
-  // If user is already authenticated, redirect them to the dashboard or their intended destination
-  if (isAuthenticated) {
+  // If user is already authenticated and not on reset-password page, redirect them to the dashboard
+  if (isAuthenticated && !location.pathname.startsWith('/reset-password')) {
     return <Navigate to={from} replace />;
   }
 
