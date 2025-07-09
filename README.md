@@ -15,14 +15,12 @@ A full-stack task management application built with the MERN stack (MongoDB, Exp
   - Create, read, update, and delete tasks
   - Mark tasks as complete/incomplete with timestamps
   - Filter tasks by status, priority, and due date
-  - Sort tasks by creation date, due date, or priority
   - Search functionality across task titles and descriptions
 
 - **User Interface**
   - Responsive design that works on all devices
   - Dark/light theme support with system preference detection
   - Intuitive and accessible interface
-  - Real-time feedback with toast notifications
   - Loading states and skeleton loaders
   - Form validation and error handling
 
@@ -30,7 +28,6 @@ A full-stack task management application built with the MERN stack (MongoDB, Exp
   - Optimized bundle size
   - Code splitting and lazy loading
   - Efficient API calls with proper caching
-  - Server-side pagination for large task lists
 
 ## 🚀 Getting Started
 
@@ -86,51 +83,6 @@ A full-stack task management application built with the MERN stack (MongoDB, Exp
    - Backend API: http://localhost:5000
    - API Documentation: http://localhost:5000/api-docs (if Swagger is enabled)
 
-## 📁 Project Structure
-
-```
-tasktracker-lite/
-├── client/                     # Frontend React application
-│   ├── public/                 # Static files and assets
-│   └── src/                    # React source code
-│       ├── assets/             # Images, fonts, and other static assets
-│       ├── components/         # Reusable UI components
-│       │   ├── auth/           # Authentication related components
-│       │   ├── common/         # Common UI components (buttons, modals, etc.)
-│       │   ├── layout/         # Layout components (header, sidebar, etc.)
-│       │   └── tasks/          # Task related components
-│       ├── context/            # React context providers
-│       ├── hooks/              # Custom React hooks
-│       ├── pages/              # Page components
-│       │   ├── auth/           # Authentication pages
-│       │   ├── dashboard/      # Main dashboard
-│       │   └── tasks/          # Task management pages
-│       ├── services/           # API services and data fetching
-│       ├── styles/             # Global styles and theme configuration
-│       └── utils/              # Utility functions and helpers
-│
-├── server/                     # Backend Express server
-│   ├── config/                # Configuration files
-│   ├── controllers/           # Route controllers
-│   ├── middlewares/           # Custom middlewares
-│   ├── models/                # Mongoose models
-│   ├── routes/                # API routes
-│   ├── services/              # Business logic services
-│   ├── utils/                 # Utility functions
-│   ├── validators/            # Request validation schemas
-│   └── index.js               # Server entry point
-│
-├── .github/                   # GitHub configuration
-├── .husky/                   # Git hooks
-├── docs/                     # Documentation
-├── scripts/                  # Utility scripts
-├── .editorconfig             # Editor configuration
-├── .eslintrc.js              # ESLint configuration
-├── .gitignore                # Git ignore file
-├── .prettierrc               # Prettier configuration
-└── package.json              # Root package.json for scripts
-```
-
 ## 🔧 Environment Variables
 
 ### Server (.env)
@@ -149,6 +101,7 @@ MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_secure_jwt_secret_key
 JWT_EXPIRES_IN=30d
 JWT_COOKIE_EXPIRES_IN=30
+DOMAIN=.example.com
 
 # Email (for password reset)
 EMAIL_HOST=smtp.example.com
@@ -171,9 +124,6 @@ REACT_APP_API_URL=http://localhost:5000/api
 
 # Environment
 NODE_ENV=development
-
-# Optional: Google Analytics (if implemented)
-REACT_APP_GA_TRACKING_ID=your_ga_tracking_id
 ```
 
 > **Note**: Never commit `.env` files to version control. They are included in `.gitignore` by default.
@@ -191,23 +141,18 @@ REACT_APP_GA_TRACKING_ID=your_ga_tracking_id
   - Tailwind CSS v3
   - Headless UI
   - Hero Icons
-  - React Hot Toast for notifications
 
 - **Forms & Validation**
   - React Hook Form
-  - Zod for schema validation
-  - Yup for form validation
 
 - **HTTP Client**
   - Axios for API requests
-  - React Query for data fetching and caching
 
 ### Backend
 - **Runtime & Framework**
   - Node.js
   - Express.js
   - CORS for cross-origin requests
-  - Helmet for security headers
   - Compression for response compression
 
 - **Database**
@@ -227,49 +172,6 @@ REACT_APP_GA_TRACKING_ID=your_ga_tracking_id
   - ESLint + Prettier for code quality
   - Jest + Supertest for testing
   - Swagger/OpenAPI for API documentation
-
-## 🚀 Deployment
-
-### Backend Deployment
-1. **Choose a hosting provider**:
-   - [Render](https://render.com/)
-   - [Railway](https://railway.app/)
-   - [Heroku](https://www.heroku.com/)
-   - AWS Elastic Beanstalk
-   - DigitalOcean App Platform
-
-2. **Set up environment variables** in your hosting provider's dashboard
-
-3. **Configure the database**:
-   - Use MongoDB Atlas for production
-   - Set up proper backups and monitoring
-
-### Frontend Deployment
-1. **Build for production**:
-   ```bash
-   cd client
-   npm run build
-   ```
-
-2. **Deploy to**:
-   - [Vercel](https://vercel.com/)
-   - [Netlify](https://www.netlify.com/)
-   - [GitHub Pages](https://pages.github.com/)
-   - [Firebase Hosting](https://firebase.google.com/docs/hosting)
-
-## 🧪 Testing
-
-### Backend Tests
-```bash
-cd server
-npm test
-```
-
-### Frontend Tests
-```bash
-cd client
-npm test
-```
 
 ## 🤝 Contributing
 
