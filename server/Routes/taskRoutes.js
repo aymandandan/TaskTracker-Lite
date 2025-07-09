@@ -16,16 +16,35 @@ router.use(protect);
 // @route   POST /api/tasks
 // @desc    Create a new task
 // @access  Private
-router.post(
-  '/',
-  [
-    check('title', 'Title is required').not().isEmpty().trim().escape(),
-    check('description', 'Description is too long').optional().trim().escape().isLength({ max: 1000 }),
-    check('dueDate', 'Please provide a valid due date').isISO8601().toDate(),
-    check('priority', 'Priority must be low, medium, or high').optional().isIn(['low', 'medium', 'high'])
-  ],
-  createTask
-);
+// Custom middleware to validate task creation
+const validateTaskCreation = [
+  check('title', 'Title is required').not().isEmpty().trim().escape(),
+  check('description', 'Description is too long').optional().trim().escape().isLength({ max: 1000 }),
+  check('dueDate', 'Please provide a valid due date').isISO8601().toDate(),
+  (req, res, next) => {
+    // Only validate priority if it exists in the request body
+    if (req.body.priority) {
+      const priority = req.body.priority.toString().toLowerCase();
+      if (!['low', 'medium', 'high'].includes(priority)) {
+        return res.status(400).json({
+          errors: [{
+            msg: 'Priority must be low, medium, or high',
+            param: 'priority',
+            location: 'body'
+          }]
+        });
+      }
+      // Sanitize the priority
+      req.body.priority = priority;
+    } else {
+      // Set default priority if not provided
+      req.body.priority = 'medium';
+    }
+    next();
+  }
+];
+
+router.post('/', validateTaskCreation, createTask);
 
 // @route   GET /api/tasks
 // @desc    Get all tasks for the logged-in user
@@ -35,17 +54,33 @@ router.get('/', getTasks);
 // @route   PUT /api/tasks/:id
 // @desc    Update a task
 // @access  Private
-router.put(
-  '/:id',
-  [
-    check('title', 'Title is required').optional().not().isEmpty().trim().escape(),
-    check('description', 'Description is too long').optional().trim().escape().isLength({ max: 1000 }),
-    check('dueDate', 'Invalid due date').optional().isISO8601(),
-    check('priority', 'Invalid priority').optional().isIn(['low', 'medium', 'high']),
-    check('completed', 'Completed must be a boolean').optional().isBoolean()
-  ],
-  updateTask
-);
+// Custom middleware to validate task update
+const validateTaskUpdate = [
+  check('title', 'Title is required').optional().not().isEmpty().trim().escape(),
+  check('description', 'Description is too long').optional().trim().escape().isLength({ max: 1000 }),
+  check('dueDate', 'Invalid due date').optional().isISO8601(),
+  check('completed', 'Completed must be a boolean').optional().isBoolean(),
+  (req, res, next) => {
+    // Only validate priority if it exists in the request body
+    if (req.body.priority) {
+      const priority = req.body.priority.toString().toLowerCase();
+      if (!['low', 'medium', 'high'].includes(priority)) {
+        return res.status(400).json({
+          errors: [{
+            msg: 'Priority must be low, medium, or high',
+            param: 'priority',
+            location: 'body'
+          }]
+        });
+      }
+      // Sanitize the priority
+      req.body.priority = priority;
+    }
+    next();
+  }
+];
+
+router.put('/:id', validateTaskUpdate, updateTask);
 
 // @route   DELETE /api/tasks/:id
 // @desc    Delete a task

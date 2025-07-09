@@ -20,28 +20,25 @@ This is the frontend for TaskTracker Lite, a full-stack task management applicat
   - Responsive design for all screen sizes
   - Dark/light theme with system preference detection
   - Intuitive and accessible interface
-  - Toast notifications for user feedback
   - Loading states and skeleton loaders
 
 - **Performance**
   - Code splitting and lazy loading
   - Optimized bundle size
-  - Efficient data fetching with React Query
   - Memoized components for better performance
 
 ## 🚀 Prerequisites
 
 - Node.js (v16 or higher)
 - npm (v8 or higher) or yarn (v1.22 or higher)
-- Backend server running (see [server/README.md](../server/README.md) for setup)
+- Backend server running (see [server/README.md](https://github.com/aymandandan/TaskTracker-Lite-Backend/blob/main/README.md) for setup)
 - Git
 
 ## 🛠️ Setup Instructions
 
 1. **Clone the repository** (if you haven't already)
    ```bash
-   git clone https://github.com/yourusername/tasktracker-lite.git
-   cd tasktracker-lite/client
+   git clone https://github.com/aymandandan/tasktracker-lite.git
    ```
 
 2. **Install dependencies**
@@ -59,9 +56,6 @@ This is the frontend for TaskTracker Lite, a full-stack task management applicat
    
    # Environment
    NODE_ENV=development
-   
-   # Optional: Google Analytics (if implemented)
-   REACT_APP_GA_TRACKING_ID=your_ga_tracking_id
    ```
 
 4. **Start the development server**
@@ -92,62 +86,20 @@ In the project directory, you can run:
 - `npm run format` - Formats code using Prettier
 - `npm run analyze` - Analyzes the bundle size (if configured)
 
-## 📁 Project Structure
-
-```
-src/
-  ├── assets/             # Static assets (images, fonts, etc.)
-  │
-  ├── components/         # Reusable UI components
-  │   ├── auth/          # Authentication related components
-  │   ├── common/        # Common UI components (buttons, modals, etc.)
-  │   ├── layout/        # Layout components (header, footer, sidebar)
-  │   └── tasks/         # Task related components
-  │
-  ├── context/           # React context providers
-  │   ├── AuthContext.js # Authentication context
-  │   └── ThemeContext.js # Theme context
-  │
-  ├── hooks/             # Custom React hooks
-  │   ├── useAuth.js     # Authentication hook
-  │   └── useTheme.js    # Theme hook
-  │
-  ├── pages/             # Page components
-  │   ├── auth/         # Authentication pages
-  │   ├── dashboard/    # Dashboard pages
-  │   └── tasks/        # Task management pages
-  │
-  ├── services/          # API services and data fetching
-  │   ├── api.js        # Axios instance and interceptors
-  │   └── taskService.js # Task-related API calls
-  │
-  ├── styles/            # Global styles and theme
-  │   ├── index.css     # Global styles
-  │   └── theme.js      # Theme configuration
-  │
-  └── utils/             # Utility functions
-      ├── validators.js  # Form validation utilities
-      └── helpers.js     # Helper functions
-```
-
 ## 🛠️ Tech Stack
 
 ### Core
 - React 18
 - React Router DOM v6
-- React Query (for data fetching and caching)
 - Axios (HTTP client)
 
 ### Styling
 - Tailwind CSS v3
 - Headless UI (accessible UI components)
 - Hero Icons
-- React Hot Toast (notifications)
 
 ### Forms & Validation
 - React Hook Form
-- Zod (schema validation)
-- Yup (form validation)
 
 ### State Management
 - React Context API
@@ -156,9 +108,7 @@ src/
 ### Development Tools
 - ESLint (code linting)
 - Prettier (code formatting)
-- Husky (Git hooks)
-- Jest + React Testing Library (testing)
-- Vite (build tool)
+- React Testing Library (testing)
 
 ## Contributing
 
